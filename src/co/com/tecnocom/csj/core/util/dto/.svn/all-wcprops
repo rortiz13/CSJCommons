@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/repos/!svn/ver/6662/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto
+END
+AppointmentConstants.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/repos/!svn/ver/6129/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/AppointmentConstants.java
+END
+Appointment.java
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/repos/!svn/ver/6522/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/Appointment.java
+END
+PQRType.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/repos/!svn/ver/6066/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/PQRType.java
+END
+City.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/repos/!svn/ver/6101/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/City.java
+END
+AppointmentType.java
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/repos/!svn/ver/6129/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/AppointmentType.java
+END
+ProcessData.java
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/repos/!svn/ver/7071/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/ProcessData.java
+END
+DocumentType.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/repos/!svn/ver/6228/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/DocumentType.java
+END
+Location.java
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/repos/!svn/ver/6522/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/Location.java
+END
+PQRStatus.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/repos/!svn/ver/6234/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/PQRStatus.java
+END
+Department.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/repos/!svn/ver/6101/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/Department.java
+END
+PQRRecord.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/repos/!svn/ver/6234/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/PQRRecord.java
+END
+PQR.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/repos/!svn/ver/6379/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/dto/PQR.java
+END

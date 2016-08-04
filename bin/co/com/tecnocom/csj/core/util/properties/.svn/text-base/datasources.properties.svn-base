@@ -1,0 +1,19 @@
+# Configuraciones de DataSources y Bases de Datos utilizadas
+pqr=csjDB
+liferay=csjDB
+consejo=consejo_localhost
+
+lportal_ramajudicial_datasource=csjDB
+#lportal_ramajudicial_database=ramajudicial.dbo.
+lportal_ramajudicial_database=lporRamajPruTecn.dbo.
+
+max_interval_days_for_ws_query=10
+
+location_datasource=despachos
+#location_database=despachos
+location_database=Despacho
+
+# Bases Consejo
+processQueries_database=consejo
+processQueries_datasource=consejo
+processQueries_datasource_001=consejo_prueba

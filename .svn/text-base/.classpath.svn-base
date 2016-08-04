@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="C:/Proyectos/csj/instancia_csj/liferay_portal/instancia1/tomcat-7.0.27/lib/ext/portal-service.jar"/>
+	<classpathentry kind="lib" path="C:/Proyectos/csj/instancia_csj/liferay_portal/instancia1/tomcat-7.0.27/lib/ext/mail.jar"/>
+	<classpathentry kind="lib" path="C:/Proyectos/csj/instancia_csj/liferay_portal/instancia1/tomcat-7.0.27/lib/servlet-api.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

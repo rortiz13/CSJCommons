@@ -1,0 +1,191 @@
+package co.com.tecnocom.csj.core.util;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+
+import co.com.tecnocom.csj.core.pool.DatabaseConnection;
+import co.com.tecnocom.csj.core.util.dto.ProcessData;
+import co.com.tecnocom.csj.core.util.dto.locationFinder.City;
+import co.com.tecnocom.csj.core.util.dto.locationFinder.Specialty;
+import co.com.tecnocom.csj.core.util.properties.DatasourceProperties;
+
+public enum ProcessQueriesUtil {
+	INSTANCE;
+	
+	private static List<City> cities;
+	private static List<Specialty> specialties;
+
+	private static final String processQueriesDatabase = DatasourceProperties.INSTANCE.getProcessQueriesDatabase();
+	private static final String processQueriesDatasource = DatasourceProperties.INSTANCE.getProcessQueriesDS();
+	
+	/* Queries */
+	private static final String sqlCities = "SELECT * FROM " + processQueriesDatabase + ".dbo.t065BACIUDGENE";
+	private static final String sqlSpecialties = "SELECT * FROM " + processQueriesDatabase + ".dbo.t062BAESPEGENE";
+	
+	public List<City> getAllCities() {
+		if(cities == null) {
+			Connection connection = null;
+			Statement entitiesStatement = null;
+			ResultSet rs = null;
+			try {
+
+				connection = DatabaseConnection.INSTANCE.getConnection(processQueriesDatasource);
+				entitiesStatement = DatabaseConnection.INSTANCE.getStatement(connection);
+				rs = DatabaseConnection.INSTANCE.executeQuery(entitiesStatement, sqlCities);
+
+				cities = Converter.INSTANCE.convertCities(rs);
+			} finally {
+				DatabaseConnection.INSTANCE.close(connection, entitiesStatement, rs);
+			}
+			
+			Collections.sort(cities, new Comparator<City>() {
+				@Override
+				public int compare(City o1, City o2) {
+					return o1.getName().compareTo(o2.getName());
+				}
+				
+			});
+		}
+		
+		return cities;
+	}
+	
+	public List<Specialty> getAllSpecialties() {
+		if(specialties == null) {
+			Connection connection = null;
+			Statement entitiesStatement = null;
+			ResultSet rs = null;
+			try {
+
+				connection = DatabaseConnection.INSTANCE.getConnection(processQueriesDatasource);
+				entitiesStatement = DatabaseConnection.INSTANCE.getStatement(connection);
+				rs = DatabaseConnection.INSTANCE.executeQuery(entitiesStatement, sqlSpecialties);
+
+				specialties = Converter.INSTANCE.convertSpecialtiesWithCode(rs);
+			} finally {
+				DatabaseConnection.INSTANCE.close(connection, entitiesStatement, rs);
+			}
+		}
+		
+		return specialties;
+	}
+	
+	public List<ProcessData> findProcessQueries(String dataSource, String processDatabase, Integer resultsLimit, String name, String document, String dateType, String fromDate, String toDate, String cityCode, String corporationSpecialtyCode) {
+		List<ProcessData> processes = new LinkedList<ProcessData>();
+		
+		Connection connection = null;
+		Statement processStatement = null;
+		ResultSet rs = null;
+		try {
+			//	Base Query
+			StringBuilder sqlProcesses = new StringBuilder("select processInfo.A103LLAVPROC as ProcessNumber, processInfo.A103FECHPROC as ProcessDate, cityData.A065DESCCIUD as ProcessCity, specialtyData.A062DESCESPE as ProcessSpecialty, corporationData.A051DESCENTI as ProcessCorporation, processInfo.A103NOMBPONE ProcessPerson, processInfo.A103DESCACTD as ActuacionDespacho, processInfo.A103ANOTACTD as AnotacionDespacho, processInfo.A103FECHDESD as FechaActuacionDespacho, processInfo.A103DESCACTS as ActuacionSecretaria, processInfo.A103ANOTACTS as AnotacionSecretaria, processInfo.A103FECHDESS as FechaActuacionSecretaria, processInfo.A103FECHINIS as FechaInicialSecretaria, processInfo.A103FECHFINS as FechaFinalSecretaria, processSubject.A112CODISUJE as SubjectCode, processSubject.A112NOMBSUJE as SubjectName ");
+//			StringBuilder sqlProcesses = new StringBuilder("select TOP ").append(resultsLimit).append(" processInfo.A103LLAVPROC as ProcessNumber, processInfo.A103FECHPROC as ProcessDate, cityData.A065DESCCIUD as ProcessCity, specialtyData.A062DESCESPE as ProcessSpecialty, processInfo.A103DESCACTD as ActuacionDespacho, processInfo.A103ANOTACTD as AnotacionDespacho, processInfo.A103FECHDESD as FechaActuacionDespacho, processInfo.A103DESCACTS as ActuacionSecretaria, processInfo.A103ANOTACTS as AnotacionSecretaria, processInfo.A103FECHDESS as FechaActuacionSecretaria, processInfo.A103FECHINIS as FechaInicialSecretaria, processInfo.A103FECHFINS as FechaFinalSecretaria, processSubject.A112CODISUJE as SubjectCode, processSubject.A112NOMBSUJE as SubjectName ");
+
+			//	FROM
+			sqlProcesses.append(" FROM ").append(processDatabase).append(".dbo.T103DAINFOPROC processInfo ")
+			.append(" join ").append(processDatabase).append(".dbo.T065BACIUDGENE cityData on (processInfo.A103CIUDRADI = cityData.A065CODICIUD) ")
+			.append(" join ").append(processDatabase).append(".dbo.T062BAESPEGENE specialtyData on (processInfo.A103ESPERADI = specialtyData.A062CODIESPE) ")
+			.append(" join ").append(processDatabase).append(".dbo.T112DRSUJEPROC processSubject on (processInfo.A103LLAVPROC = processSubject.A112LLAVPROC) ")
+			.append(" join ").append(processDatabase).append(".dbo.T051BAENTIGENE corporationData on (processInfo.A103ENTIRADI = corporationData.A051CODIENTI) ");
+
+			// WHERE
+			boolean whereApplied = false;
+			boolean conditionApplied = false;
+			
+			if(name != null && !name.isEmpty()) {
+				sqlProcesses.append(" WHERE ");
+				whereApplied = true;
+				
+				sqlProcesses.append(" A103LLAVPROC IN (SELECT A112LLAVPROC FROM ").append(processDatabase).append(".dbo.T112DRSUJEPROC WHERE A112NOMBSUJE LIKE '%").append(name.toUpperCase()).append("%') ");
+				conditionApplied = true;
+			}
+			
+			if(document != null && !document.isEmpty()) {
+				if(!whereApplied) { 
+					sqlProcesses.append(" WHERE "); 
+					whereApplied = true; 
+				}
+				if(conditionApplied) { 
+					sqlProcesses.append(" AND ");
+				}
+				
+				sqlProcesses.append(" A103LLAVPROC IN (SELECT A112LLAVPROC FROM ").append(processDatabase).append(".dbo.T112DRSUJEPROC WHERE A112NUMESUJE = '").append(document).append("') ");
+				conditionApplied = true;
+			}
+			
+			if(cityCode != null && !cityCode.isEmpty()) {
+				if(!whereApplied) { 
+					sqlProcesses.append(" WHERE "); 
+					whereApplied = true; 
+				}
+				if(conditionApplied) { 
+					sqlProcesses.append(" AND ");
+				}
+				
+				sqlProcesses.append(" cityData.A065CODICIUD = ").append(cityCode);
+				conditionApplied = true;
+			}
+			
+			if(corporationSpecialtyCode != null && !corporationSpecialtyCode.isEmpty()) {
+				if(!whereApplied) { 
+					sqlProcesses.append(" WHERE "); 
+					whereApplied = true; 
+				}
+				if(conditionApplied) { 
+					sqlProcesses.append(" AND ");
+				}
+				
+				String corporationCode = corporationSpecialtyCode.substring(0, 2);
+				String specialtyCode = corporationSpecialtyCode.substring(2);
+				//processInfo.A103ESPERADI
+				//processInfo.A103ENTIRADI
+				sqlProcesses.append(" processInfo.A103ENTIRADI = ").append(corporationCode);
+				sqlProcesses.append(" AND ");
+				sqlProcesses.append(" processInfo.A103ESPERADI = ").append(specialtyCode);
+//				sqlProcesses.append(" specialtyData.A062CODIESPE = ").append(corporationSpecialtyCode);
+				
+				conditionApplied = true;
+			}
+			
+			// Se buscan sólo demandados o demandantes
+			String demCondition = "(processSubject.A112CODISUJE = '0001' OR processSubject.A112CODISUJE = '0002')";
+			if(!whereApplied) { 
+				sqlProcesses.append(" WHERE ").append(demCondition);
+			} else {
+				sqlProcesses.append(" AND ").append(demCondition);
+			}
+			
+			//	Filtro de fecha
+			if(dateType.equals("processStartDate")) {
+				//	Inicio del Proceso
+				sqlProcesses.append(" AND processInfo.A103FECHPROC BETWEEN '").append(fromDate).append("' AND '").append(toDate).append("' ");
+			} else if(dateType.equals("actDate")) {
+				//	Fecha de la actuación
+				sqlProcesses.append(" AND (processInfo.A103FECHDESD BETWEEN '").append(fromDate).append("' AND '").append(toDate).append("' OR processInfo.A103FECHDESS BETWEEN '").append(fromDate).append("' AND '").append(toDate).append("') ");
+			}
+			
+			//	Ordenar por no. proceso
+			sqlProcesses.append(" ORDER BY processInfo.A103LLAVPROC");
+			
+			
+			System.out.println("Query procesos : " + sqlProcesses.toString());
+
+			connection = DatabaseConnection.INSTANCE.getConnection(dataSource);
+//			connection = DatabaseConnection.INSTANCE.getConnection(processQueriesDatasource);
+			processStatement = DatabaseConnection.INSTANCE.getStatement(connection);
+			rs = DatabaseConnection.INSTANCE.executeQuery(processStatement, sqlProcesses.toString());
+
+			processes = Converter.INSTANCE.convertProcesses(rs);
+			
+		} finally {
+			DatabaseConnection.INSTANCE.close(connection, processStatement, rs);
+		}
+		
+		return processes;
+	}
+}

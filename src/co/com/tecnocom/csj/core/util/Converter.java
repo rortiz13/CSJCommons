@@ -1,0 +1,686 @@
+package co.com.tecnocom.csj.core.util;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import co.com.tecnocom.csj.core.util.dto.Appointment;
+import co.com.tecnocom.csj.core.util.dto.AppointmentConstants;
+import co.com.tecnocom.csj.core.util.dto.AppointmentType;
+import co.com.tecnocom.csj.core.util.dto.City;
+import co.com.tecnocom.csj.core.util.dto.Department;
+import co.com.tecnocom.csj.core.util.dto.DocumentType;
+import co.com.tecnocom.csj.core.util.dto.Location;
+import co.com.tecnocom.csj.core.util.dto.PQR;
+import co.com.tecnocom.csj.core.util.dto.PQRRecord;
+import co.com.tecnocom.csj.core.util.dto.PQRStatus;
+import co.com.tecnocom.csj.core.util.dto.PQRType;
+import co.com.tecnocom.csj.core.util.dto.ProcessData;
+import co.com.tecnocom.csj.core.util.dto.locationFinder.DespachoJudicial;
+import co.com.tecnocom.csj.core.util.dto.locationFinder.Entity;
+import co.com.tecnocom.csj.core.util.dto.locationFinder.Municipality;
+import co.com.tecnocom.csj.core.util.dto.locationFinder.Specialty;
+
+public enum Converter {
+	INSTANCE;
+
+	public void setPQRRecords(PQR pqr, Map<Long, List<PQRRecord>> pqrRecords, List<PQRStatus> pqrStatuses, String defaultStatus) {
+		if (pqrRecords != null && pqr != null) {
+			List<PQRRecord> records = pqrRecords.get(pqr.getId());
+
+			if (records != null) {
+				for (PQRRecord pqrRecord : records) {
+					pqrRecord.setStatusName(getStatusName(pqrRecord.getStatusId(), pqrStatuses));
+				}
+			}
+
+			pqr.setCurrentStatus(records == null ? defaultStatus : records.get(records.size() - 1).getStatusName());
+
+			pqr.setRecords(records);
+		}
+	}
+
+	public Date getPQRDate(ResultSet rs) {
+		try {
+			if (rs.next()) {
+				return rs.getTimestamp(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	public List<PQR> convertPQRs(ResultSet rs, List<PQRType> pqrTypes, List<DocumentType> documentTypes, List<Department> departments) {
+		List<PQR> pqrs = new LinkedList<PQR>();
+
+		try {
+			while (rs.next()) {
+				PQR pqr = new PQR();
+				pqr.setId(rs.getLong(1));
+
+				pqr.setName(rs.getString(4));
+				pqr.setOriginalComment(rs.getString(10));
+				pqr.setSubmitted(rs.getTimestamp(12));
+
+				// Detail
+				pqr.setPqrType(getPqrTypeName(rs.getInt("pt"), pqrTypes));
+				pqr.setDocumentType(getDocumentTypeAbb(rs.getInt("dt"), documentTypes));
+				pqr.setDocumentNumber(rs.getString("dn"));
+				pqr.setPhone(rs.getString("ph"));
+				pqr.setEmail(rs.getString("em"));
+				pqr.setAddress(rs.getString("ad"));
+				pqr.setCity(getCityName(rs.getInt("ci"), departments));
+				pqr.setLiferayUserId(rs.getLong("lif"));
+				pqr.setFilename(rs.getString("fn"));
+
+				pqrs.add(pqr);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return pqrs;
+	}
+
+	public PQRRecord convertPQRRecord(ResultSet rs, List<PQRStatus> pqrStatuses) {
+		try {
+			while (rs.next()) {
+				PQRRecord pqrRecord = new PQRRecord();
+				pqrRecord.setStatusId(rs.getLong(1));
+				pqrRecord.setComment(rs.getString(2));
+				pqrRecord.setUpdated(rs.getTimestamp(3));
+
+				pqrRecord.setStatusName(getStatusName(pqrRecord.getStatusId(), pqrStatuses));
+
+				return pqrRecord;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	public Map<Long, List<PQRRecord>> convertPQRRecords(ResultSet rs) {
+		Map<Long, List<PQRRecord>> records = new LinkedHashMap<Long, List<PQRRecord>>();
+
+		try {
+			while (rs.next()) {
+				PQRRecord pqrRecord = new PQRRecord();
+				pqrRecord.setId(rs.getLong(1));
+				pqrRecord.setStatusId(rs.getLong(2));
+				pqrRecord.setPqrId(rs.getLong(3));
+				pqrRecord.setComment(rs.getString(4));
+				pqrRecord.setUpdated(rs.getTimestamp(5));
+				pqrRecord.setLiferayUserId(rs.getLong(6));
+
+				if (records.containsKey(pqrRecord.getPqrId())) {
+					records.get(pqrRecord.getPqrId()).add(pqrRecord);
+				} else {
+					records.put(pqrRecord.getPqrId(), new LinkedList<PQRRecord>());
+					records.get(pqrRecord.getPqrId()).add(pqrRecord);
+				}
+
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return records;
+	}
+
+	public Map<Integer, Department> convertDepartmentsAndCities(ResultSet rs) {
+		Map<Integer, Department> departments = new LinkedHashMap<Integer, Department>();
+		try {
+			while (rs.next()) {
+				int departmentCode = rs.getInt(1);
+				String departmentName = rs.getString(2);
+				int cityCode = rs.getInt(3);
+				String cityName = rs.getString(4);
+				int departmentId = rs.getInt(5);
+				int cityId = rs.getInt(6);
+
+				if (departments.containsKey(departmentCode)) {
+					Department department = departments.get(departmentCode);
+
+					if (!department.getCities().containsKey(cityCode)) {
+						City city = new City();
+						city.setId(cityId);
+						city.setCode(cityCode);
+						city.setName(cityName);
+						department.getCities().put(cityCode, city);
+					}
+				} else {
+					Department department = new Department();
+					department.setId(departmentId);
+					department.setCode(departmentCode);
+					department.setName(departmentName);
+					department.setCities(new LinkedHashMap<Integer, City>());
+
+					City city = new City();
+					city.setId(cityId);
+					city.setCode(cityCode);
+					city.setName(cityName);
+					department.getCities().put(cityCode, city);
+
+					departments.put(departmentCode, department);
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return departments;
+	}
+
+	public List<DocumentType> convertDocumentTypes(ResultSet rs) {
+		List<DocumentType> documentTypes = new LinkedList<DocumentType>();
+
+		try {
+			while (rs.next()) {
+				int id = rs.getInt(1);
+				String name = rs.getString(2);
+				String abb = rs.getString(3);
+
+				DocumentType documentType = new DocumentType();
+				documentType.setId(id);
+				documentType.setName(name);
+				documentType.setAbb(abb);
+				documentTypes.add(documentType);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return documentTypes;
+	}
+
+	public List<PQRStatus> convertPqrStatuses(ResultSet rs) {
+		List<PQRStatus> pqrStatuses = new LinkedList<PQRStatus>();
+
+		try {
+			while (rs.next()) {
+				Long id = rs.getLong(1);
+				String name = rs.getString(2);
+
+				PQRStatus pqrStatus = new PQRStatus();
+				pqrStatus.setId(id);
+				pqrStatus.setName(name);
+				pqrStatuses.add(pqrStatus);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return Collections.unmodifiableList(pqrStatuses);
+	}
+
+	public List<PQRType> convertPQRTypes(ResultSet rs) {
+		List<PQRType> pqrTypes = new LinkedList<PQRType>();
+
+		try {
+			while (rs.next()) {
+				int id = rs.getInt(1);
+				String name = rs.getString(2);
+
+				PQRType pqrType = new PQRType();
+				pqrType.setId(id);
+				pqrType.setName(name);
+				pqrTypes.add(pqrType);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return Collections.unmodifiableList(pqrTypes);
+	}
+
+	public List<AppointmentType> convertToAppointmentTypes(ResultSet rs) throws SQLException {
+		List<AppointmentType> appointmentTypes = new LinkedList<AppointmentType>();
+
+		while (rs.next()) {
+			int id = rs.getInt(1);
+			String name = rs.getString(2);
+
+			AppointmentType appointmentType = new AppointmentType();
+			appointmentType.setId(id);
+			appointmentType.setName(name);
+			appointmentTypes.add(appointmentType);
+		}
+		return appointmentTypes;
+	}
+
+	public List<Appointment> convertToAppointments(ResultSet rs) /*throws SQLException */{
+		List<Appointment> appointments = new LinkedList<Appointment>();
+		try {
+			while (rs.next()) {
+				int departmentCode = rs.getInt("d_code");
+				String departmentName = rs.getString("d_name");
+
+				int cityCode = rs.getInt("c_code");
+				String cityName = rs.getString("c_name");
+
+				long appointmentTypeId = rs.getLong("appointment_type_id");
+
+				Date startDate = rs.getDate("start_date");
+				int appointmentId = rs.getInt("id");
+				String fullName = rs.getString("full_name");
+				String telephone = rs.getString("telephone");
+				String email = rs.getString("email");
+				String comments = rs.getString("comments");
+				int hours = rs.getInt("hours");
+				long scopeGroupId = rs.getLong("scope_group_id");
+
+				Appointment appointment = new Appointment();
+
+				// entidades embebidas en appointment
+				Department department = new Department();
+				department.setCode(departmentCode);
+				department.setName(departmentName);
+
+				City city = new City();
+				city.setCode(cityCode);
+				city.setName(cityName);
+
+				// AppointmentType appointmentType = new AppointmentType();
+				// appointmentType.setName(appointmentTypeId);
+
+				appointment.setId(appointmentId);
+				appointment.setStartDate(startDate);
+				appointment.setFullName(fullName);
+				appointment.setTelephone(telephone);
+				appointment.setEmail(email);
+				appointment.setComments(comments);
+				appointment.setAppointmentHours(AppointmentConstants.values()[hours]);
+				appointment.setCity(city);
+				appointment.setDepartment(department);
+				appointment.setAppointmentTypeId(appointmentTypeId);
+				appointment.setScopeGroupId(scopeGroupId);
+				appointments.add(appointment);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return appointments;
+	}
+
+	public Appointment convertToSingleAppointment(ResultSet rs) throws SQLException {
+
+		if (rs.next()) {
+			int departmentCode = rs.getInt("d_code");
+			String departmentName = rs.getString("d_name");
+
+			int cityCode = rs.getInt("c_code");
+			String cityName = rs.getString("c_name");
+
+			long appointmentTypeId = rs.getLong("appointment_type_id");
+
+			Date startDate = rs.getDate("start_date");
+			int appointmentId = rs.getInt("id");
+			String fullName = rs.getString("full_name");
+			String telephone = rs.getString("telephone");
+			String email = rs.getString("email");
+			String comments = rs.getString("comments");
+			int hours = rs.getInt("hours");
+			long scopeGroupId = rs.getLong("scope_group_id");
+
+			Appointment appointment = new Appointment();
+
+			// entidades embebidas en appointment
+			Department department = new Department();
+			department.setCode(departmentCode);
+			department.setName(departmentName);
+
+			City city = new City();
+			city.setCode(cityCode);
+			city.setName(cityName);
+
+			// AppointmentType appointmentType = new AppointmentType();
+			// appointmentType.setName(appointmentTypeName);
+
+			appointment.setId(appointmentId);
+			appointment.setStartDate(startDate);
+			appointment.setFullName(fullName);
+			appointment.setTelephone(telephone);
+			appointment.setEmail(email);
+			appointment.setComments(comments);
+			appointment.setAppointmentHours(AppointmentConstants.values()[hours]);
+			appointment.setCity(city);
+			appointment.setDepartment(department);
+			appointment.setAppointmentTypeId(appointmentTypeId);
+			appointment.setScopeGroupId(scopeGroupId);
+			return appointment;
+		}
+		return null;
+	}
+
+	public List<Location> convertToLocations(ResultSet rs) throws SQLException {
+		List<Location> locations = new LinkedList<Location>();
+		while (rs.next()) {
+			int locationId = rs.getInt("id");
+			String locationName = rs.getString("name");
+			String locationLatitude = rs.getString("latitude");
+			String locationLongitude = rs.getString("longitude");
+			int departmentCode = rs.getInt("department_code");
+			// String locationAddress = rs.getString(5);
+
+			// int cityId = rs.getInt(6);
+			String departmentName = rs.getString("department_name");
+			// int cityCode = rs.getInt(8);
+
+			// City city = new City();
+			// city.setCode(cityCode);
+			// city.setName(cityName);
+			// city.setId(cityId);
+
+			Location location = new Location();
+
+			location.setId(locationId);
+			location.setName(locationName);
+			location.setLatitude(locationLatitude);
+			location.setLongitude(locationLongitude);
+			location.setDepartmentName(departmentName);
+			location.setDepartmentCode(departmentCode);
+			// location.setCity(city);
+
+			locations.add(location);
+		}
+		return locations;
+	}
+
+	public Location convertToSingleLocation(ResultSet rs) throws SQLException {
+		if (rs.next()) {
+			int locationId = rs.getInt("id");
+			String locationName = rs.getString("name");
+			String locationLatitude = rs.getString("latitude");
+			String locationLongitude = rs.getString("longitude");
+			int departmentCode = rs.getInt("department_code");
+			// String locationAddress = rs.getString(5);
+
+			// int cityId = rs.getInt(6);
+			String departmentName = rs.getString("department_name");
+			// int cityCode = rs.getInt(8);
+
+			// City city = new City();
+			// city.setCode(cityCode);
+			// city.setName(cityName);
+			// city.setId(cityId);
+
+			Location location = new Location();
+
+			location.setId(locationId);
+			location.setName(locationName);
+			location.setLatitude(locationLatitude);
+			location.setLongitude(locationLongitude);
+			location.setLatitude(locationLatitude);
+			location.setDepartmentName(departmentName);
+			location.setDepartmentCode(departmentCode);
+
+			return location;
+		}
+		return null;
+	}
+
+	private String getStatusName(Long statusId, List<PQRStatus> pqrStatuses) {
+		for (PQRStatus status : pqrStatuses) {
+			if (status.getId().equals(statusId)) {
+				return status.getName();
+			}
+		}
+
+		return null;
+	}
+
+	private String getPqrTypeName(int pqrTypeId, List<PQRType> pqrTypes) {
+		for (PQRType pqrType : pqrTypes) {
+			if (pqrType.getId() == pqrTypeId) {
+				return pqrType.getName();
+			}
+		}
+
+		return null;
+	}
+
+	private String getDocumentTypeAbb(int documentTypeId, List<DocumentType> documentTypes) {
+		for (DocumentType documentType : documentTypes) {
+			if (documentType.getId() == documentTypeId) {
+				return documentType.getAbb();
+			}
+		}
+
+		return null;
+	}
+
+	private String getCityName(int cityId, List<Department> departments) {
+		for (Department department : departments) {
+			for (City city : department.getCities().values()) {
+				if (city.getId() == cityId) {
+					return city.getName();
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public Map<co.com.tecnocom.csj.core.util.dto.locationFinder.Department, List<Municipality>> convertDepartments(ResultSet rs) {
+		Map<co.com.tecnocom.csj.core.util.dto.locationFinder.Department, List<Municipality>> departments = new LinkedHashMap<co.com.tecnocom.csj.core.util.dto.locationFinder.Department, List<Municipality>>();
+		try {
+			while (rs.next()) {
+				long departmentCode = rs.getLong(1);
+				String departmentName = rs.getString(2);
+				long municipalityCode = rs.getLong(3);
+				String municipalityName = rs.getString(4);
+				
+				co.com.tecnocom.csj.core.util.dto.locationFinder.Department department = new co.com.tecnocom.csj.core.util.dto.locationFinder.Department();
+				department.setId(departmentCode);
+				department.setName(departmentName);
+				if(!departments.containsKey(department)) {
+					departments.put(department, new LinkedList<Municipality>());
+				}
+				
+				Municipality municipality = new Municipality();
+				municipality.setId(municipalityCode);
+				municipality.setName(municipalityName);
+				departments.get(department).add(municipality);
+				
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return departments;
+	}
+
+	public List<Entity> convertEntities(ResultSet rs) {
+		List<Entity> entities = new LinkedList<Entity>();
+		
+		try {
+			while (rs.next()) {
+				long entityCode = rs.getLong(1);
+				String entityName = rs.getString(2);
+				
+				Entity entity = new Entity();
+				entity.setId(entityCode);
+				entity.setName(entityName);
+				entities.add(entity);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return entities;
+	}
+
+	public List<Specialty> convertSpecialties(ResultSet rs) {
+		List<Specialty> specialties = new LinkedList<Specialty>();
+		
+		try {
+			while (rs.next()) {
+				long specialtyCode = rs.getLong(1);
+				String specialtyName = rs.getString(2);
+				
+				Specialty specialty = new Specialty();
+				specialty.setId(specialtyCode);
+				specialty.setName(specialtyName);
+				specialties.add(specialty);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return specialties;
+	}
+
+	public List<DespachoJudicial> convertDespachos(ResultSet rs) {
+		List<DespachoJudicial> despachos = new LinkedList<DespachoJudicial>();
+
+		try {
+			while (rs.next()) {
+				DespachoJudicial despacho = new DespachoJudicial();
+				despacho.setCode(rs.getLong(1));
+				
+				co.com.tecnocom.csj.core.util.dto.locationFinder.Department dep = new co.com.tecnocom.csj.core.util.dto.locationFinder.Department(rs.getLong(2));
+				despacho.setDepartment(dep);
+				
+				Municipality mun =  new Municipality(rs.getLong(3));
+				despacho.setMunicipality(mun);
+				
+				Entity ent = new Entity(rs.getLong(4));
+				despacho.setEntity(ent);
+				
+				Specialty spe = new Specialty(rs.getLong(5));
+				despacho.setSpecialty(spe);
+				
+				// rs.getLong(6) = consecutivo
+				
+				despacho.setName(rs.getString(7) == null ? "" : rs.getString(7));
+				despacho.setAddress(rs.getString(8) == null ? "" : rs.getString(8));
+				despacho.setPhone(rs.getString(9) == null ? "" : rs.getString(9));
+				despacho.setMail(rs.getString(10) == null ? "" : rs.getString(10));
+				
+				// rs.getString(11) = acuerdo
+				// rs.getBoolean(12) = estado
+				// rs.getString(13) = observaciones
+				
+				despacho.setFax(rs.getString(14) == null ? "" : rs.getString(14));
+				despacho.setHoursOfOperation(rs.getString(15) == null ? "" : rs.getString(15));
+				
+				// rs.getDate(16) = fechaAct
+				
+				despacho.setLatitude(rs.getFloat(17));
+				despacho.setLongitude(rs.getFloat(18));
+				
+				despachos.add(despacho);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return despachos;
+	}
+
+	public List<co.com.tecnocom.csj.core.util.dto.locationFinder.City> convertCities(ResultSet rs) {
+		List<co.com.tecnocom.csj.core.util.dto.locationFinder.City> cities = new LinkedList<co.com.tecnocom.csj.core.util.dto.locationFinder.City>();
+		
+		try {
+			while (rs.next()) {
+				String cityCode = rs.getString(1);
+				String cityName = rs.getString(2);
+				
+				co.com.tecnocom.csj.core.util.dto.locationFinder.City city = new co.com.tecnocom.csj.core.util.dto.locationFinder.City();
+				city.setCode(cityCode);
+				city.setName(cityName);
+				cities.add(city);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return cities;
+	}
+
+	public List<Specialty> convertSpecialtiesWithCode(ResultSet rs) {
+		List<Specialty> specialties = new LinkedList<Specialty>();
+		
+		try {
+			while (rs.next()) {
+				String specialtyCode = rs.getString(1);
+				String specialtyName = rs.getString(2);
+				
+				Specialty specialty = new Specialty();
+				specialty.setCode(specialtyCode);
+				specialty.setName(specialtyName);
+				specialties.add(specialty);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return specialties;
+	}
+
+	public List<ProcessData> convertProcesses(ResultSet rs) {
+		List<ProcessData> processes = new LinkedList<ProcessData>();
+		
+		try {
+			while (rs.next()) {
+				ProcessData process = new ProcessData();
+				process.setProcessNumber(rs.getString("ProcessNumber"));
+				
+				String subjectCode = rs.getString("SubjectCode");
+				
+				if(processes.contains(process)) {
+					//	Ya existen los datos, sólo falta agregar los demás sujetos
+					process = processes.get(processes.indexOf(process));
+					if(subjectCode.equals("0001")) {
+						process.getSubjectsCode0001().add(rs.getString("SubjectName"));
+					} else if(subjectCode.equals("0002")) {
+						process.getSubjectsCode0002().add(rs.getString("SubjectName"));
+					}
+					
+					continue;
+				}
+				
+				process.setProcessDate(rs.getString("ProcessDate"));
+				process.setProcessCity(rs.getString("ProcessCity"));
+				process.setProcessSpecialty(rs.getString("ProcessSpecialty"));
+				
+				process.setProcessCorporation(rs.getString("ProcessCorporation"));
+				process.setProcessPerson(rs.getString("ProcessPerson"));
+				
+				process.setProcessClass(rs.getString("ProcessClass"));
+				
+				process.setActuacionDespacho(rs.getString("ActuacionDespacho"));
+				process.setAnotacionDespacho(rs.getString("AnotacionDespacho"));
+				process.setFechaActuacionDespacho(rs.getString("FechaActuacionDespacho"));
+				
+				process.setActuacionSecretaria(rs.getString("ActuacionSecretaria"));
+				process.setAnotacionSecretaria(rs.getString("AnotacionSecretaria"));
+				process.setFechaActuacionSecretaria(rs.getString("FechaActuacionSecretaria"));
+				process.setFechaInicialSecretaria(rs.getString("FechaInicialSecretaria"));
+				process.setFechaFinalSecretaria(rs.getString("FechaFinalSecretaria"));
+				
+				if(subjectCode.equals("0001")) {
+					process.getSubjectsCode0001().add(rs.getString("SubjectName"));
+				} else if(subjectCode.equals("0002")) {
+					process.getSubjectsCode0002().add(rs.getString("SubjectName"));
+				}
+				
+				processes.add(process);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return processes;
+	}
+}

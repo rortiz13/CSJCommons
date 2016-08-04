@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/repos/!svn/ver/6743/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util
+END
+Converter.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/repos/!svn/ver/7071/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/Converter.java
+END
+ProcessQueriesWSDataUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/repos/!svn/ver/7071/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/ProcessQueriesWSDataUtil.java
+END
+EmailUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/repos/!svn/ver/6662/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/EmailUtil.java
+END
+PQRDataUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/repos/!svn/ver/6662/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/PQRDataUtil.java
+END
+AuditUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/repos/!svn/ver/6662/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/AuditUtil.java
+END
+LocationFinderUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/repos/!svn/ver/6662/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/LocationFinderUtil.java
+END
+ProcessQueriesUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/repos/!svn/ver/7071/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/ProcessQueriesUtil.java
+END
+CommonDataUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/repos/!svn/ver/6662/ProyectoCSJ/trunk/CSJCommons/src/co/com/tecnocom/csj/core/util/CommonDataUtil.java
+END
